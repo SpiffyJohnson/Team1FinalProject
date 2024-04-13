@@ -8,11 +8,12 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
-from PIL import ImageTk,Image  
+from PIL import ImageTk, Image  
 from pathlib import Path
 from tkinter import font as tkFont
 import os
-
+import cv2
+import numpy as np  # Add this line
 # Declarations: --------------------------------------------------------------------------------
 
 # System:
@@ -21,13 +22,24 @@ global CurrentImagePath # The path of the original entered image
 
 ArrayOfTempObjects = [] # Stores each temp object location for deletion
 
+
+current_image = None
+CurrentImagePath = None
+
 # Palette:
 
-Highlight = "#DFDFDF"
-Lightest = "#898989"
-MidLightest = "#5C5C5C"
-MidDarkest = "#393939"
-Darkest = "#000000"
+Highlight = "#8E8D8A"
+Lightest = "#EAE7DC"
+MidLightest = "#D8C3A5"
+MidDarkest = "#E98074"
+Darkest = "#E85A4F"
+ButtonColor = "#D8C3A5"
+
+#Highlight = "#DFDFDF"
+#Lightest = "#898989"
+#MidLightest = "#5C5C5C"
+#MidDarkest = "#393939"
+#Darkest = "#000000"
 
 # Button design:
 
@@ -75,9 +87,14 @@ root.rowconfigure(4, weight=80)
 
 # Functions: --------------------------------------------------------------------------------
 
-# Open file dialogue to get image file, then place the resized dummy version of this image in the editor.
+
+def update_current_image(img):
+    global current_image
+    current_image = img.copy()
+
+
 def LoadImage():
-    global CurrentImagePath
+    global CurrentImagePath, MainImage, current_image  # Declare MainImage as a global variable
     # Open the file directory and allow image selection
     file_path = filedialog.askopenfilename( 
         initialdir=os.getcwd(),
@@ -85,28 +102,75 @@ def LoadImage():
         filetypes=(("PNG files", "*.png"),)  # Specify the allowed file types
     )
     if file_path and file_path.lower().endswith((".png", ".PNG")):
-        img = Image.open(file_path)
-        photo = ImageTk.PhotoImage(img)
-        multiplyer = 1
-        # Check if image fits within the boundaries of the MainImage element
-        if photo.height() > MaxImageSize and photo.width() < MaxImageSize: # If the image is only too tall
-            multiplyer = MaxImageSize / photo.height()
-        elif photo.width() > MaxImageSize and photo.height() < MaxImageSize: # If the image is only too wide
-            multiplyer = MaxImageSize / photo.width()
-        elif photo.width() > MaxImageSize and photo.height() > MaxImageSize: # If the image both too tall and too wide
-            if photo.height() > photo.width():
-                multiplyer = MaxImageSize / photo.height()
-            else:
-                multiplyer = MaxImageSize / photo.width()
-        # Resize the image file if necessary
-        new_width = int(photo.width() * multiplyer)
-        new_height = int(photo.height() * multiplyer)
-        img = img.resize((new_width, new_height), Image.ADAPTIVE)
+        img = cv2.imread(file_path)
+        height, width, _ = img.shape
+        # Determine resizing factor
+        if height > MaxImageSize and width < MaxImageSize:
+            multiplier = MaxImageSize / height
+        elif width > MaxImageSize and height < MaxImageSize:
+            multiplier = MaxImageSize / width
+        elif width > MaxImageSize and height > MaxImageSize:
+            multiplier = MaxImageSize / max(height, width)
+        else:
+            multiplier = 1
+        # Resize the image
+        img = cv2.resize(img, None, fx=multiplier, fy=multiplier, interpolation=cv2.INTER_AREA)
+        # Convert OpenCV image to PIL Image
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = Image.fromarray(img)
         photo = ImageTk.PhotoImage(img)
         # Set global variables and update MainImage picture
         CurrentImagePath = file_path
+        update_current_image(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))  # Update current image
         MainImage.config(image=photo)
         MainImage.image = photo
+
+def rotate_image():
+    global rotation_angle, current_image, MainImage
+    
+    if current_image is not None:
+        
+        current_image = cv2.rotate(current_image, cv2.ROTATE_90_CLOCKWISE)
+        
+        # Convert the rotated image to RGB (OpenCV uses BGR)
+        rotated_img = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
+        
+        # Convert the OpenCV image to a PIL Image
+        pil_img = Image.fromarray(rotated_img)
+        
+        # Create a PhotoImage from the PIL Image
+        photo = ImageTk.PhotoImage(pil_img)
+        
+        # Update the image displayed in the MainImage widget
+        MainImage.config(image=photo)
+        MainImage.image = photo  # Keep a reference to prevent garbage collection
+
+def convert_to_grayscale():
+    global current_image, MainImage
+    
+    if current_image is not None:
+        # Convert the current image to grayscale
+        gray_img = cv2.cvtColor(current_image, cv2.COLOR_BGR2GRAY)
+        
+        # Convert grayscale image to RGB for display
+        gray_img_rgb = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
+        
+        # Update the current_image with the grayscale image
+        current_image = gray_img_rgb
+        
+        # Convert the OpenCV image to a PIL Image
+        pil_img = Image.fromarray(gray_img_rgb)
+        
+        # Create a PhotoImage from the PIL Image
+        photo = ImageTk.PhotoImage(pil_img)
+        
+        # Update the image displayed in the MainImage widget
+        MainImage.config(image=photo)
+        MainImage.image = photo  # Keep a reference to prevent garbage collection
+
+
+
+
 
 # Frame setup: --------------------------------------------------------------------------------
 
@@ -137,10 +201,10 @@ BottomDescriptions.grid(row=5, column=0, sticky="NWES")
 
 # Top section and buttons: --------------------------------------------------------------------------------
 
-LoadButton = tk.Button(TopFrame, image=LoadButtonImage, bg=Lightest, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT, command=LoadImage)
-SaveButton = tk.Button(TopFrame, image=SaveImage, bg=Lightest, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT)
-HeaderImage = tk.Label(TopFrame, bg=Lightest, fg=TextColor, font=FONT, image=LogoImage)
-HeaderText = tk.Label(TopFrame, text="       PHOTO EDITOR  ", bg=Lightest, fg=TextColor, font=FONT)
+LoadButton = tk.Button(TopFrame, image=LoadButtonImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT, command=LoadImage)
+SaveButton = tk.Button(TopFrame, image=SaveImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT)
+HeaderImage = tk.Label(TopFrame, bg=MidLightest, fg=TextColor, font=FONT, image=LogoImage)
+HeaderText = tk.Label(TopFrame, text="       PHOTO EDITOR  ", bg=MidLightest, fg=MidDarkest, font=FONT)
 
 LoadButton.grid(row=0, column=0, sticky="NWES")
 SaveButton.grid(row=0, column=1, sticky="NWES")
@@ -149,25 +213,25 @@ HeaderText.grid(row=0, column=3, sticky="NWES")
 
 # Middle section: --------------------------------------------------------------------------------
 
-ShadowLabel1 = tk.Label(MiddleShadow, bg=MidDarkest)
+ShadowLabel1 = tk.Label(MiddleShadow, bg=Darkest)
 ShadowLabel1.pack(fill="both", side="top", expand=True)
 
-MainImage = tk.Label(MiddleFrame, image=None, bg=Darkest)
+MainImage = tk.Label(MiddleFrame, image=None, bg=Lightest)
 MainImage.pack(fill="both", side="top", expand=True)
 
-ShadowLabel2 = tk.Label(EndShadow, bg=Highlight)
+ShadowLabel2 = tk.Label(EndShadow, bg=Darkest)
 ShadowLabel2.pack(fill="both", side="top", expand=True)
+
+
 
 # Bottom buttons: --------------------------------------------------------------------------------
 
-ButtonColor = Lightest # Change this value to affect all bottom buttons
-
-Separator1 = tk.Label(BottomFrame, text="          ", bg=ButtonColor) # Makes space on the bottom row
+Separator1 = tk.Label(BottomFrame, text="          ", bg=Lightest) # Makes space on the bottom row
 Separator1.pack(fill="both", expand=True, side="left")
 
 BAndWButton = tk.Button(BottomFrame, image=BnWButtonImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT)
 BAndWButton.pack(fill="both", expand=True, side="left")
-GreyscaleButton = tk.Button(BottomFrame, image=GreyButtonImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT)
+GreyscaleButton = tk.Button(BottomFrame, image=GreyButtonImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT, command=convert_to_grayscale)
 GreyscaleButton.pack(fill="both", expand=True, side="left")
 FHorizButton = tk.Button(BottomFrame, image=FlipHButtonImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT)
 FHorizButton.pack(fill="both", expand=True, side="left")
@@ -179,39 +243,39 @@ InvertButton = tk.Button(BottomFrame, image=InvertImage, bg=ButtonColor, relief=
 InvertButton.pack(fill="both", expand=True, side="left")
 CropButton = tk.Button(BottomFrame, image=CropImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT)
 CropButton.pack(fill="both", expand=True, side="left")
-RotateButton = tk.Button(BottomFrame, image=RotateImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT)
+RotateButton = tk.Button(BottomFrame, image=RotateImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT, command=rotate_image)
 RotateButton.pack(fill="both", expand=True, side="left")
 ResetButton = tk.Button(BottomFrame, image=UndoImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT)
 ResetButton.pack(fill="both", expand=True, side="left")
 
-Separator2 = tk.Label(BottomFrame, text="          ", bg=ButtonColor) # Makes space on the bottom row
+Separator2 = tk.Label(BottomFrame, text="          ", bg=Lightest) # Makes space on the bottom row
 Separator2.pack(fill="both", expand=True, side="left")
 
 # Bottom Text Descriptions and padding:
 
-Separator3 = tk.Label(BottomDescriptions, text="          ", bg=ButtonColor)
+Separator3 = tk.Label(BottomDescriptions, text="          ", bg=Lightest)
 Separator3.pack(fill="both", expand=True, side="left")
 
-BAndLDescription = tk.Label(BottomDescriptions, text="Black & White", bg=ButtonColor)
+BAndLDescription = tk.Label(BottomDescriptions, text="Black & White", bg=Lightest)
 BAndLDescription.pack(fill="both", expand=True, side="left")
-GrayDescription = tk.Label(BottomDescriptions, text="   Grayscale   ", bg=ButtonColor)
+GrayDescription = tk.Label(BottomDescriptions, text="   Grayscale   ", bg=Lightest)
 GrayDescription.pack(fill="both", expand=True, side="left")
-FlipHDescription = tk.Label(BottomDescriptions, text="Horizontal Flip", bg=ButtonColor)
+FlipHDescription = tk.Label(BottomDescriptions, text="Horizontal Flip", bg=Lightest)
 FlipHDescription.pack(fill="both", expand=True, side="left")
-FlipVDescription = tk.Label(BottomDescriptions, text=" Vertical Flip ", bg=ButtonColor)
+FlipVDescription = tk.Label(BottomDescriptions, text=" Vertical Flip ", bg=Lightest)
 FlipVDescription.pack(fill="both", expand=True, side="left")
-ScaleDescription = tk.Label(BottomDescriptions, text="         Scale      ", bg=ButtonColor)
+ScaleDescription = tk.Label(BottomDescriptions, text="         Scale      ", bg=Lightest)
 ScaleDescription.pack(fill="both", expand=True, side="left")
-InvertDescription = tk.Label(BottomDescriptions, text="    Invert Color ", bg=ButtonColor)
+InvertDescription = tk.Label(BottomDescriptions, text="    Invert Color ", bg=Lightest)
 InvertDescription.pack(fill="both", expand=True, side="left")
-CropDescription = tk.Label(BottomDescriptions, text="  Crop Image ", bg=ButtonColor)
+CropDescription = tk.Label(BottomDescriptions, text="  Crop Image ", bg=Lightest)
 CropDescription.pack(fill="both", expand=True, side="left")
-RotateDescription = tk.Label(BottomDescriptions, text="  Rotate Image ", bg=ButtonColor)
+RotateDescription = tk.Label(BottomDescriptions, text="  Rotate Image ", bg=Lightest)
 RotateDescription.pack(fill="both", expand=True, side="left")
-UndoDescription = tk.Label(BottomDescriptions, text="  Reset Image    ", bg=ButtonColor)
+UndoDescription = tk.Label(BottomDescriptions, text="  Reset Image    ", bg=Lightest)
 UndoDescription.pack(fill="both", expand=True, side="left")
 
-Separator4 = tk.Label(BottomDescriptions, text="          ", bg=ButtonColor)
+Separator4 = tk.Label(BottomDescriptions, text="          ", bg=Lightest)
 Separator4.pack(fill="both", expand=True, side="left")
 
 root.mainloop()
