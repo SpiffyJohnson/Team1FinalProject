@@ -27,7 +27,7 @@ ArrayOfTempObjects = [] # Stores each temp object location for deletion
 current_image = None
 CurrentImagePath = None
 
-# Blue Palette:
+# "Dark mode" Palette:
 
 Highlight = "#2B2B2B"
 Lightest = "#1F1F1F"
@@ -185,6 +185,23 @@ def convert_to_grayscale():
         MainImage.config(image=photo)
         MainImage.image = photo  # Keep a reference to prevent garbage collection
 
+def convert_to_inverted():
+    global current_image, MainImage
+
+    if current_image is not None:
+        image = current_image
+        b, g, r = cv2.split(image)
+        inverted_b = 255 - b # Invert each color channel...
+        inverted_g = 255 - g
+        inverted_r = 255 - r
+        inverted_image = cv2.merge((inverted_b, inverted_g, inverted_r)) # ...and stitch them together again.
+        current_image = inverted_image
+        inverted_image = cv2.cvtColor(inverted_image, cv2.COLOR_BGR2RGB)
+        pil_img = Image.fromarray(inverted_image)
+        photo = ImageTk.PhotoImage(pil_img)
+        MainImage.config(image=photo)
+        MainImage.image = photo
+
 def rotate_image():
     global rotation_angle, current_image, MainImage
     if current_image is not None:
@@ -291,7 +308,7 @@ FVertiButton = tk.Button(BottomFrame, image=FlipVButtonImage, bg=ButtonColor, re
 FVertiButton.pack(fill="both", expand=True, side="left")
 ResizeButton = tk.Button(BottomFrame, image=ResizeImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT)
 ResizeButton.pack(fill="both", expand=True, side="left")
-InvertButton = tk.Button(BottomFrame, image=InvertImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT)
+InvertButton = tk.Button(BottomFrame, image=InvertImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT, command=convert_to_inverted)
 InvertButton.pack(fill="both", expand=True, side="left")
 CropButton = tk.Button(BottomFrame, image=CropImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT)
 CropButton.pack(fill="both", expand=True, side="left")
