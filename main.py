@@ -20,9 +20,7 @@ import cv2
 # System:
 
 global CurrentImagePath # The path of the original entered image
-
-ArrayOfTempObjects = [] # Stores each temp object location for deletion
-
+global RealImage # The actual image, which will be modified while retaining its original size.
 
 current_image = None
 CurrentImagePath = None
@@ -106,8 +104,14 @@ def update_current_image(img):
     global current_image
     current_image = img.copy()
 
+def UpdateSizeDisplay(img):
+    global ImageSizeDisplay
+    height, width, _ = img.shape
+    ImageSizeDisplay.config(text=(str(width) + " x " + str(height)))
+
 def Resizer(img):
     height, width, _ = img.shape
+    
     # Determine resizing factor
     if height > MaxImageSize and width < MaxImageSize:
         multiplier = MaxImageSize / height
@@ -132,6 +136,7 @@ def LoadImage():
     )
     if file_path and file_path.lower().endswith((".png", ".PNG")):
         img = cv2.imread(file_path)
+        UpdateSizeDisplay(img)
         img = Resizer(img)
         # Convert OpenCV image to PIL Image
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -183,7 +188,33 @@ def convert_to_grayscale():
         
         # Update the image displayed in the MainImage widget
         MainImage.config(image=photo)
-        MainImage.image = photo  # Keep a reference to prevent garbage collection
+        MainImage.image = photo
+
+def convert_to_flip_h():
+    global current_image, MainImage
+
+    if current_image is not None:
+        image = current_image
+        BinaryImage = cv2.flip(image, 1) # Flip the image
+        current_image = BinaryImage
+        BinaryImage = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
+        pil_img = Image.fromarray(BinaryImage)
+        photo = ImageTk.PhotoImage(pil_img)
+        MainImage.config(image=photo)
+        MainImage.image = photo
+
+def convert_to_flip_v():
+    global current_image, MainImage
+
+    if current_image is not None:
+        image = current_image
+        BinaryImage = cv2.flip(image, 0) # Flip the image
+        current_image = BinaryImage
+        BinaryImage = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
+        pil_img = Image.fromarray(BinaryImage)
+        photo = ImageTk.PhotoImage(pil_img)
+        MainImage.config(image=photo)
+        MainImage.image = photo
 
 def convert_to_inverted():
     global current_image, MainImage
@@ -202,7 +233,7 @@ def convert_to_inverted():
         MainImage.config(image=photo)
         MainImage.image = photo
 
-def rotate_image():
+def convert_to_rotated():
     global rotation_angle, current_image, MainImage
     if current_image is not None:
         current_image = cv2.rotate(current_image, cv2.ROTATE_90_CLOCKWISE)
@@ -284,6 +315,9 @@ HeaderText.grid(row=0, column=3, sticky="NWES")
 
 ShadowLabel1 = tk.Label(MiddleShadow, bg=MidDarkest)
 ShadowLabel1.pack(fill="both", side="top", expand=True)
+global ImageSizeDisplay
+ImageSizeDisplay = tk.Label(MiddleShadow, bg=Darkest, fg="#FFF", text="0 x 0")
+ImageSizeDisplay.pack(fill="both", side="top", expand=True)
 
 MainImage = tk.Label(MiddleFrame, image=None, bg=Darkest)
 MainImage.pack(fill="both", side="top", expand=True)
@@ -302,9 +336,9 @@ BAndWButton = tk.Button(BottomFrame, image=BnWButtonImage, bg=ButtonColor, relie
 BAndWButton.pack(fill="both", expand=True, side="left")
 GreyscaleButton = tk.Button(BottomFrame, image=GreyButtonImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT, command=convert_to_grayscale)
 GreyscaleButton.pack(fill="both", expand=True, side="left")
-FHorizButton = tk.Button(BottomFrame, image=FlipHButtonImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT)
+FHorizButton = tk.Button(BottomFrame, image=FlipHButtonImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT, command=convert_to_flip_h)
 FHorizButton.pack(fill="both", expand=True, side="left")
-FVertiButton = tk.Button(BottomFrame, image=FlipVButtonImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT)
+FVertiButton = tk.Button(BottomFrame, image=FlipVButtonImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT, command=convert_to_flip_v)
 FVertiButton.pack(fill="both", expand=True, side="left")
 ResizeButton = tk.Button(BottomFrame, image=ResizeImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT)
 ResizeButton.pack(fill="both", expand=True, side="left")
@@ -312,7 +346,7 @@ InvertButton = tk.Button(BottomFrame, image=InvertImage, bg=ButtonColor, relief=
 InvertButton.pack(fill="both", expand=True, side="left")
 CropButton = tk.Button(BottomFrame, image=CropImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT)
 CropButton.pack(fill="both", expand=True, side="left")
-RotateButton = tk.Button(BottomFrame, image=RotateImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT, command=rotate_image)
+RotateButton = tk.Button(BottomFrame, image=RotateImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT, command=convert_to_rotated)
 RotateButton.pack(fill="both", expand=True, side="left")
 ResetButton = tk.Button(BottomFrame, image=UndoImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT, command=reset_image)
 ResetButton.pack(fill="both", expand=True, side="left")
