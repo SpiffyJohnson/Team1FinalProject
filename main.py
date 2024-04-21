@@ -127,7 +127,7 @@ def Resizer(img):
 
 
 def LoadImage():
-    global CurrentImagePath, MainImage, current_image  # Declare MainImage as a global variable
+    global CurrentImagePath, MainImage, current_image, RealImage  # Declare MainImage as a global variable
     # Open the file directory and allow image selection
     file_path = filedialog.askopenfilename( 
         initialdir=os.getcwd(),
@@ -137,6 +137,7 @@ def LoadImage():
     if file_path and file_path.lower().endswith((".png", ".PNG")):
         img = cv2.imread(file_path)
         UpdateSizeDisplay(img)
+        RealImage = img
         img = Resizer(img)
         # Convert OpenCV image to PIL Image
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -149,13 +150,31 @@ def LoadImage():
         MainImage.config(image=photo)
         MainImage.image = photo
 
-def convert_to_black_and_white():
-    global current_image, MainImage
+def SaveAsImage():
+    global RealImage
 
     if current_image is not None:
+        FilePath = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png")])
+        if FilePath:  # Check if the user entered a file path
+            
+            image = cv2.cvtColor(RealImage, cv2.COLOR_BGR2RGB)
+            photo = Image.fromarray(image)
+            photo.save(FilePath)
+
+def convert_to_black_and_white():
+    global current_image, MainImage, RealImage
+
+    if current_image is not None:
+        # Dummy version modifications:
         gray_image = cv2.cvtColor(current_image, cv2.COLOR_BGR2GRAY) # Set the image to grayscale to avoid color channel inconsistency.
         ret, BinaryImage = cv2.threshold(gray_image, 127, 255, cv2.THRESH_BINARY) # Re-assign pixels based on value.
         BinaryImage = cv2.cvtColor(BinaryImage, cv2.COLOR_GRAY2RGB)
+
+        # Real image modifications:
+        gray_real_image = cv2.cvtColor(RealImage, cv2.COLOR_BGR2GRAY) # Set the image to grayscale to avoid color channel inconsistency.
+        ret, BinaryRealImage = cv2.threshold(gray_real_image, 127, 255, cv2.THRESH_BINARY) # Re-assign pixels based on value.
+        RealImage = cv2.cvtColor(BinaryRealImage, cv2.COLOR_GRAY2RGB)
+
         current_image = BinaryImage # Set the global current image variable to the updated image.
         pil_img = Image.fromarray(BinaryImage)
         
@@ -168,35 +187,40 @@ def convert_to_black_and_white():
         
 
 def convert_to_grayscale():
-    global current_image, MainImage
+    global current_image, MainImage, RealImage
     
     if current_image is not None:
-        # Convert the current image to grayscale
-        gray_img = cv2.cvtColor(current_image, cv2.COLOR_BGR2GRAY)
         
-        # Convert grayscale image to RGB for display
-        gray_img_rgb = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
-        
-        # Update the current_image with the grayscale image
+        # Dummy version modifications:
+        gray_img = cv2.cvtColor(current_image, cv2.COLOR_BGR2GRAY) # Convert the current image to grayscale
+        gray_img_rgb = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB) # Convert grayscale image to RGB for display
         current_image = gray_img_rgb
+
+        # Real version modifications:
+        gray_real_img = cv2.cvtColor(RealImage, cv2.COLOR_BGR2GRAY) # Convert the current image to grayscale
+        gray_real_img_rgb = cv2.cvtColor(gray_real_img, cv2.COLOR_GRAY2RGB) # Convert grayscale image to RGB for display
+        RealImage = gray_real_img_rgb
         
-        # Convert the OpenCV image to a PIL Image
+        # Display dummy version:
         pil_img = Image.fromarray(gray_img_rgb)
-        
-        # Create a PhotoImage from the PIL Image
         photo = ImageTk.PhotoImage(pil_img)
-        
-        # Update the image displayed in the MainImage widget
         MainImage.config(image=photo)
         MainImage.image = photo
 
 def convert_to_flip_h():
-    global current_image, MainImage
+    global current_image, MainImage, RealImage
 
     if current_image is not None:
-        image = current_image
-        BinaryImage = cv2.flip(image, 1) # Flip the image
+
+        # Dummy version modifications:
+        BinaryImage = cv2.flip(current_image, 1) # Flip the image
         current_image = BinaryImage
+
+        # Real image modifications:
+        BinaryRealImage = cv2.flip(RealImage, 1) # Flip the image
+        RealImage = BinaryRealImage
+
+        # Display dummy version:
         BinaryImage = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
         pil_img = Image.fromarray(BinaryImage)
         photo = ImageTk.PhotoImage(pil_img)
@@ -204,12 +228,19 @@ def convert_to_flip_h():
         MainImage.image = photo
 
 def convert_to_flip_v():
-    global current_image, MainImage
+    global current_image, MainImage, RealImage
 
     if current_image is not None:
-        image = current_image
-        BinaryImage = cv2.flip(image, 0) # Flip the image
+
+        # Dummy version modifications:
+        BinaryImage = cv2.flip(current_image, 0) # Flip the image
         current_image = BinaryImage
+
+        # Real version modifications:
+        BinaryRealImage = cv2.flip(RealImage, 0) # Flip the image
+        RealImage = BinaryRealImage
+
+        # Display dummy version:
         BinaryImage = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
         pil_img = Image.fromarray(BinaryImage)
         photo = ImageTk.PhotoImage(pil_img)
@@ -217,16 +248,26 @@ def convert_to_flip_v():
         MainImage.image = photo
 
 def convert_to_inverted():
-    global current_image, MainImage
+    global current_image, MainImage, RealImage
 
     if current_image is not None:
-        image = current_image
-        b, g, r = cv2.split(image)
+        # Dummy version modifications:
+        b, g, r = cv2.split(current_image)
         inverted_b = 255 - b # Invert each color channel...
         inverted_g = 255 - g
         inverted_r = 255 - r
         inverted_image = cv2.merge((inverted_b, inverted_g, inverted_r)) # ...and stitch them together again.
         current_image = inverted_image
+
+        # Real version modifications:
+        b, g, r = cv2.split(RealImage)
+        inverted_b = 255 - b
+        inverted_g = 255 - g
+        inverted_r = 255 - r
+        inverted_real_image = cv2.merge((inverted_b, inverted_g, inverted_r))
+        RealImage = inverted_real_image
+        
+        # Display dummy version:
         inverted_image = cv2.cvtColor(inverted_image, cv2.COLOR_BGR2RGB)
         pil_img = Image.fromarray(inverted_image)
         photo = ImageTk.PhotoImage(pil_img)
@@ -234,28 +275,27 @@ def convert_to_inverted():
         MainImage.image = photo
 
 def convert_to_rotated():
-    global rotation_angle, current_image, MainImage
-    if current_image is not None:
-        current_image = cv2.rotate(current_image, cv2.ROTATE_90_CLOCKWISE)
+    global current_image, MainImage, RealImage
 
-        # Convert the rotated image to RGB (OpenCV uses BGR)
-        rotated_img = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
-        
-        # Convert the OpenCV image to a PIL Image
-        pil_img = Image.fromarray(rotated_img)
-        
-        # Create a PhotoImage from the PIL Image
+    if current_image is not None:
+
+        current_image = cv2.rotate(current_image, cv2.ROTATE_90_CLOCKWISE) # Dummy version
+        RealImage = cv2.rotate(RealImage, cv2.ROTATE_90_CLOCKWISE) # Real version
+        UpdateSizeDisplay(RealImage) # Change the width x height display
+
+        rotated_img = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB) # Convert the rotated image to RGB (OpenCV uses BGR)
+        pil_img = Image.fromarray(rotated_img) # Convert the OpenCV image to a PIL Image
         photo = ImageTk.PhotoImage(pil_img)
-        
-        # Update the image displayed in the MainImage widget
         MainImage.config(image=photo)
-        MainImage.image = photo  # Keep a reference to prevent garbage collection
+        MainImage.image = photo
 
 def reset_image():
-    global current_image, MainImage, CurrentImagePath
+    global current_image, MainImage, CurrentImagePath, RealImage
     
     if current_image is not None:
         img = cv2.imread(CurrentImagePath)
+        RealImage = img
+        UpdateSizeDisplay(RealImage) # Change the width x height display
         img = Resizer(img)
         current_image = img
         img = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
@@ -302,7 +342,7 @@ BottomDescriptions.grid(row=5, column=0, sticky="NWES")
 # Top section and buttons: --------------------------------------------------------------------------------
 
 LoadButton = tk.Button(TopFrame, image=LoadButtonImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT, command=LoadImage)
-SaveButton = tk.Button(TopFrame, image=SaveImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT)
+SaveButton = tk.Button(TopFrame, image=SaveImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT, command=SaveAsImage)
 HeaderImage = tk.Label(TopFrame, bg=Lightest, fg=TextColor, font=FONT, image=LogoImage)
 HeaderText = tk.Label(TopFrame, text="       PHOTO EDITOR  ", bg=Lightest, fg="#3F3F3F", font=FONT)
 
