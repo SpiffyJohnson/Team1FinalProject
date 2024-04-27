@@ -1,13 +1,13 @@
 #---------------------------------------------------------------------------------------------------------------
 # Program: Team 1 Photo Editor
-# Author(s): Samuel Johnson - - -
+# Author(s): Samuel Johnson, Gabe Bartek, Ryan Michael, Cole Mason
 # Last Updated: 3/19/2024
 # Purpose: To edit the color, rotation, and size of image files.
 #---------------------------------------------------------------------------------------------------------------
 
 import tkinter as tk
 from tkinter import ttk
-from tkinter import filedialog
+from tkinter import filedialog, simpledialog
 from PIL import ImageTk, Image  
 from pathlib import Path
 from tkinter import font as tkFont
@@ -247,6 +247,12 @@ def convert_to_flip_v():
         MainImage.config(image=photo)
         MainImage.image = photo
 
+def convert_to_scaled():
+    global current_image, MainImage, RealImage
+
+    if current_image is not None:
+        pass
+
 def convert_to_inverted():
     global current_image, MainImage, RealImage
 
@@ -273,6 +279,51 @@ def convert_to_inverted():
         photo = ImageTk.PhotoImage(pil_img)
         MainImage.config(image=photo)
         MainImage.image = photo
+
+def convert_to_randomized():
+    global current_image, MainImage, RealImage
+
+    if current_image is not None:
+        # Dummy version modifications:
+        b, g, r = cv2.split(current_image)
+        random_b = np.random.randint(0, 256)
+        random_g = np.random.randint(0, 256)
+        random_r = np.random.randint(0, 256)
+        
+        b = np.clip(b + random_b, 0, 255).astype(np.uint8)
+        g = np.clip(g + random_g, 0, 255).astype(np.uint8)
+        r = np.clip(r + random_r, 0, 255).astype(np.uint8)
+        inverted_image = cv2.merge((b, g, r))
+        current_image = inverted_image
+
+        # Real version modifications:
+        b, g, r = cv2.split(RealImage)
+
+        inverted_b = np.clip(b + random_b, 0, 255).astype(np.uint8)
+        inverted_g = np.clip(g + random_g, 0, 255).astype(np.uint8)
+        inverted_r = np.clip(r + random_r, 0, 255).astype(np.uint8)
+        inverted_real_image = cv2.merge((inverted_b, inverted_g, inverted_r))
+        RealImage = inverted_real_image
+        
+        # Display dummy version:
+        inverted_image = cv2.cvtColor(inverted_image, cv2.COLOR_BGR2RGB)
+        pil_img = Image.fromarray(inverted_image)
+        photo = ImageTk.PhotoImage(pil_img)
+        MainImage.config(image=photo)
+        MainImage.image = photo
+
+def GetInput(DotNumber, Direction):
+    global RealImage
+    height, width, _ = RealImage.shape
+    
+    # Get the first number input
+    if (Direction == "height"):
+        Input = simpledialog.askinteger("Input", f"Enter the " + Direction + " of the " + DotNumber + " point (0 - " + str(height) + "):", parent=root, minvalue=0, maxvalue=height)
+    else:
+        Input = simpledialog.askinteger("Input", f"Enter the " + Direction + " of the " + DotNumber + " point (0 - " + str(width) + "):", parent=root, minvalue=0, maxvalue=width)
+    if Input is None:  # Check if user cancels the dialog
+        return None, None
+    return Input
 
 def convert_to_rotated():
     global current_image, MainImage, RealImage
@@ -384,7 +435,7 @@ ResizeButton = tk.Button(BottomFrame, image=ResizeImage, bg=ButtonColor, relief=
 ResizeButton.pack(fill="both", expand=True, side="left")
 InvertButton = tk.Button(BottomFrame, image=InvertImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT, command=convert_to_inverted)
 InvertButton.pack(fill="both", expand=True, side="left")
-CropButton = tk.Button(BottomFrame, image=CropImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT)
+CropButton = tk.Button(BottomFrame, image=CropImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT, command=convert_to_randomized)
 CropButton.pack(fill="both", expand=True, side="left")
 RotateButton = tk.Button(BottomFrame, image=RotateImage, bg=ButtonColor, relief=BorderStyle, bd=BorderWidth, fg=TextColor, font=FONT, command=convert_to_rotated)
 RotateButton.pack(fill="both", expand=True, side="left")
@@ -411,7 +462,7 @@ ScaleDescription = tk.Label(BottomDescriptions, text="         Scale      ", bg=
 ScaleDescription.pack(fill="both", expand=True, side="left")
 InvertDescription = tk.Label(BottomDescriptions, text="    Invert Color ", bg=Lightest, fg=DescriptionTextColor)
 InvertDescription.pack(fill="both", expand=True, side="left")
-CropDescription = tk.Label(BottomDescriptions, text="  Crop Image ", bg=Lightest, fg=DescriptionTextColor)
+CropDescription = tk.Label(BottomDescriptions, text="  Pop Image ", bg=Lightest, fg=DescriptionTextColor)
 CropDescription.pack(fill="both", expand=True, side="left")
 RotateDescription = tk.Label(BottomDescriptions, text="  Rotate Image ", bg=Lightest, fg=DescriptionTextColor)
 RotateDescription.pack(fill="both", expand=True, side="left")
