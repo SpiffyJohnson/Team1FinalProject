@@ -83,10 +83,13 @@ root.rowconfigure(4, weight=80)
 
 # Functions: --------------------------------------------------------------------------------
 
-
-def update_current_image(img):
-    global current_image
-    current_image = img.copy()
+# Check if the image has an alpha channel
+def IsAlpha(image):
+    try:
+        r, g, b, a = cv2.split(image)
+        return True
+    except:
+        return False
 
 def UpdateSizeDisplay(img):
     global ImageSizeDisplay
@@ -119,18 +122,20 @@ def LoadImage():
         filetypes=(("PNG files", "*.png"),)  # Specify the allowed file types
     )
     if file_path and file_path.lower().endswith((".png", ".PNG")):
-        img = cv2.imread(file_path)
+        img = cv2.imread(file_path, cv2.IMREAD_UNCHANGED)
         UpdateSizeDisplay(img)
         RealImage = img
         img = Resizer(img)
+        current_image = img
         # Convert OpenCV image to PIL Image
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        if (IsAlpha(img)):
+            img = cv2.cvtColor(img, cv2.COLOR_BGRA2RGBA)
+        else:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(img)
         photo = ImageTk.PhotoImage(img)
         # Set global variables and update MainImage picture
         CurrentImagePath = file_path
-        print(CurrentImagePath)
-        update_current_image(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))  # Update current image
         MainImage.config(image=photo)
         MainImage.image = photo
 
@@ -140,8 +145,10 @@ def SaveAsImage():
     if current_image is not None:
         FilePath = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png")])
         if FilePath:  # Check if the user entered a file path
-            
-            image = cv2.cvtColor(RealImage, cv2.COLOR_BGR2RGB)
+            if (IsAlpha(RealImage)):
+                image = cv2.cvtColor(RealImage, cv2.COLOR_BGRA2RGBA)
+            else:
+                image = cv2.cvtColor(RealImage, cv2.COLOR_BGR2RGB)
             photo = Image.fromarray(image)
             photo.save(FilePath)
 
@@ -150,15 +157,34 @@ def convert_to_black_and_white():
 
     if current_image is not None:
         # Dummy version modifications:
-        gray_image = cv2.cvtColor(current_image, cv2.COLOR_BGR2GRAY) # Set the image to grayscale to avoid color channel inconsistency.
-        ret, BinaryImage = cv2.threshold(gray_image, 127, 255, cv2.THRESH_BINARY) # Re-assign pixels based on value.
-        BinaryImage = cv2.cvtColor(BinaryImage, cv2.COLOR_GRAY2RGB)
+        if (IsAlpha(RealImage)):
+            b, g, r, a = cv2.split(current_image)
+            gray_image = cv2.cvtColor(cv2.merge((b, g, r)), cv2.COLOR_BGR2GRAY)
+        else:
+            gray_image = cv2.cvtColor(current_image, cv2.COLOR_BGR2GRAY) # Set the image to grayscale to avoid color channel inconsistency.
+        
+        if (IsAlpha(RealImage)):
+            BinaryImage = cv2.merge((gray_image, gray_image, gray_image, a))
+            ret, BinaryImage = cv2.threshold(BinaryImage, 127, 255, cv2.THRESH_BINARY) # Re-assign pixels based on value.
+        else:
+            ret, BinaryImage = cv2.threshold(gray_image, 127, 255, cv2.THRESH_BINARY) # Re-assign pixels based on value.
+            BinaryImage = cv2.cvtColor(BinaryImage, cv2.COLOR_GRAY2RGB)
 
         # Real image modifications:
-        gray_real_image = cv2.cvtColor(RealImage, cv2.COLOR_BGR2GRAY) # Set the image to grayscale to avoid color channel inconsistency.
-        ret, BinaryRealImage = cv2.threshold(gray_real_image, 127, 255, cv2.THRESH_BINARY) # Re-assign pixels based on value.
-        RealImage = cv2.cvtColor(BinaryRealImage, cv2.COLOR_GRAY2RGB)
-
+        if (IsAlpha(RealImage)):
+            b, g, r, a = cv2.split(RealImage)
+            gray_image = cv2.cvtColor(cv2.merge((b, g, r)), cv2.COLOR_BGR2GRAY)
+        else:
+            gray_image = cv2.cvtColor(current_image, cv2.COLOR_BGR2GRAY) # Set the image to grayscale to avoid color channel inconsistency.
+        
+        if (IsAlpha(RealImage)):
+            BinaryRealImage = cv2.merge((gray_image, gray_image, gray_image, a))
+            ret, BinaryRealImage = cv2.threshold(BinaryRealImage, 127, 255, cv2.THRESH_BINARY) # Re-assign pixels based on value.
+        else:
+            ret, BinaryRealImage = cv2.threshold(gray_image, 127, 255, cv2.THRESH_BINARY) # Re-assign pixels based on value.
+            BinaryRealImage = cv2.cvtColor(BinaryRealImage, cv2.COLOR_GRAY2RGB)
+        
+        RealImage = BinaryRealImage
         current_image = BinaryImage # Set the global current image variable to the updated image.
         pil_img = Image.fromarray(BinaryImage)
         
@@ -176,14 +202,26 @@ def convert_to_grayscale():
     if current_image is not None:
         
         # Dummy version modifications:
-        gray_img = cv2.cvtColor(current_image, cv2.COLOR_BGR2GRAY) # Convert the current image to grayscale
-        gray_img_rgb = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB) # Convert grayscale image to RGB for display
-        current_image = gray_img_rgb
+        if IsAlpha(current_image):
+            b, g, r, a = cv2.split(current_image)
+            gray_img = cv2.cvtColor(cv2.merge((b, g, r)), cv2.COLOR_BGR2GRAY)
+            gray_img_rgb = cv2.merge((gray_img, gray_img, gray_img, a))
+            current_image = gray_img_rgb
+        else:
+            gray_img = cv2.cvtColor(current_image, cv2.COLOR_BGR2GRAY)
+            gray_img_rgb = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2BGR)
+            current_image = gray_img_rgb
 
         # Real version modifications:
-        gray_real_img = cv2.cvtColor(RealImage, cv2.COLOR_BGR2GRAY) # Convert the current image to grayscale
-        gray_real_img_rgb = cv2.cvtColor(gray_real_img, cv2.COLOR_GRAY2RGB) # Convert grayscale image to RGB for display
-        RealImage = gray_real_img_rgb
+        if IsAlpha(RealImage):
+            b, g, r, a = cv2.split(RealImage)
+            gray_img = cv2.cvtColor(cv2.merge((b, g, r)), cv2.COLOR_BGR2GRAY)
+            gray_real_img_rgb = cv2.merge((gray_img, gray_img, gray_img, a))
+            RealImage = gray_real_img_rgb
+        else:
+            gray_img = cv2.cvtColor(RealImage, cv2.COLOR_BGR2GRAY)
+            gray_real_img_rgb = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2BGR)
+            RealImage = gray_real_img_rgb
         
         # Display dummy version:
         pil_img = Image.fromarray(gray_img_rgb)
@@ -205,7 +243,10 @@ def convert_to_flip_h():
         RealImage = BinaryRealImage
 
         # Display dummy version:
-        BinaryImage = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
+        if (IsAlpha(RealImage)):
+            BinaryImage = cv2.cvtColor(current_image, cv2.COLOR_BGRA2RGBA)
+        else:
+            BinaryImage = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
         pil_img = Image.fromarray(BinaryImage)
         photo = ImageTk.PhotoImage(pil_img)
         MainImage.config(image=photo)
@@ -225,7 +266,10 @@ def convert_to_flip_v():
         RealImage = BinaryRealImage
 
         # Display dummy version:
-        BinaryImage = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
+        if (IsAlpha(RealImage)):
+            BinaryImage = cv2.cvtColor(current_image, cv2.COLOR_BGRA2RGBA)
+        else:
+            BinaryImage = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
         pil_img = Image.fromarray(BinaryImage)
         photo = ImageTk.PhotoImage(pil_img)
         MainImage.config(image=photo)
@@ -250,8 +294,10 @@ def convert_to_scaled():
                 RealImage = cv2.resize(RealImage, None, fx=value, fy=value, interpolation=cv2.INTER_NEAREST)
                 current_image = cv2.resize(current_image, None, fx=value, fy=value, interpolation=cv2.INTER_NEAREST)
                 current_image = Resizer(current_image)
-                binary_image = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
-
+                if (IsAlpha(RealImage)):
+                    binary_image = cv2.cvtColor(current_image, cv2.COLOR_BGRA2RGBA)
+                else:
+                    binary_image = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
                 pil_img = Image.fromarray(binary_image)
                 photo = ImageTk.PhotoImage(pil_img)
                 MainImage.config(image=photo)
@@ -314,23 +360,38 @@ def convert_to_inverted():
 
     if current_image is not None:
         # Dummy version modifications:
-        b, g, r = cv2.split(current_image)
+        if (IsAlpha(RealImage)):
+            b, g, r, a = cv2.split(current_image)
+        else:
+            b, g, r = cv2.split(current_image)
         inverted_b = 255 - b # Invert each color channel...
         inverted_g = 255 - g
         inverted_r = 255 - r
-        inverted_image = cv2.merge((inverted_b, inverted_g, inverted_r)) # ...and stitch them together again.
+        if (IsAlpha(RealImage)):
+            inverted_image = cv2.merge((inverted_b, inverted_g, inverted_r, a)) # ...and stitch them together again.
+        else:
+            inverted_image = cv2.merge((inverted_b, inverted_g, inverted_r))
         current_image = inverted_image
 
         # Real version modifications:
-        b, g, r = cv2.split(RealImage)
+        if (IsAlpha(RealImage)):
+            b, g, r, a = cv2.split(RealImage)
+        else:
+            b, g, r = cv2.split(RealImage)
         inverted_b = 255 - b
         inverted_g = 255 - g
         inverted_r = 255 - r
-        inverted_real_image = cv2.merge((inverted_b, inverted_g, inverted_r))
+        if (IsAlpha(RealImage)):
+            inverted_real_image = cv2.merge((inverted_b, inverted_g, inverted_r, a))
+        else:
+            inverted_real_image = cv2.merge((inverted_b, inverted_g, inverted_r))
         RealImage = inverted_real_image
         
         # Display dummy version:
-        inverted_image = cv2.cvtColor(inverted_image, cv2.COLOR_BGR2RGB)
+        if (IsAlpha(RealImage)):
+            inverted_image = cv2.cvtColor(inverted_image, cv2.COLOR_BGRA2RGBA)
+        else:
+            inverted_image = cv2.cvtColor(inverted_image, cv2.COLOR_BGR2RGB)
         pil_img = Image.fromarray(inverted_image)
         photo = ImageTk.PhotoImage(pil_img)
         MainImage.config(image=photo)
@@ -341,7 +402,10 @@ def convert_to_randomized():
 
     if current_image is not None:
         # Dummy version modifications:
-        b, g, r = cv2.split(current_image)
+        if (IsAlpha(RealImage)):
+            b, g, r, a = cv2.split(current_image)
+        else:
+            b, g, r = cv2.split(current_image)
         random_b = np.random.randint(0, 256)
         random_g = np.random.randint(0, 256)
         random_r = np.random.randint(0, 256)
@@ -349,20 +413,32 @@ def convert_to_randomized():
         b = np.clip(b + random_b, 0, 255).astype(np.uint8)
         g = np.clip(g + random_g, 0, 255).astype(np.uint8)
         r = np.clip(r + random_r, 0, 255).astype(np.uint8)
-        inverted_image = cv2.merge((b, g, r))
+        if (IsAlpha(RealImage)):
+            inverted_image = cv2.merge((b, g, r, a))
+        else:
+            inverted_image = cv2.merge((b, g, r))
         current_image = inverted_image
 
         # Real version modifications:
-        b, g, r = cv2.split(RealImage)
+        if (IsAlpha(RealImage)):
+            b, g, r, a = cv2.split(RealImage)
+        else:
+            b, g, r = cv2.split(RealImage)
 
         inverted_b = np.clip(b + random_b, 0, 255).astype(np.uint8)
         inverted_g = np.clip(g + random_g, 0, 255).astype(np.uint8)
         inverted_r = np.clip(r + random_r, 0, 255).astype(np.uint8)
-        inverted_real_image = cv2.merge((inverted_b, inverted_g, inverted_r))
+        if (IsAlpha(RealImage)):
+            inverted_real_image = cv2.merge((inverted_b, inverted_g, inverted_r, a))
+        else:
+            inverted_real_image = cv2.merge((inverted_b, inverted_g, inverted_r))
         RealImage = inverted_real_image
         
         # Display dummy version:
-        inverted_image = cv2.cvtColor(inverted_image, cv2.COLOR_BGR2RGB)
+        if (IsAlpha(RealImage)):
+            inverted_image = cv2.cvtColor(inverted_image, cv2.COLOR_BGRA2RGBA)
+        else:
+            inverted_image = cv2.cvtColor(inverted_image, cv2.COLOR_BGR2RGB)
         pil_img = Image.fromarray(inverted_image)
         photo = ImageTk.PhotoImage(pil_img)
         MainImage.config(image=photo)
@@ -414,7 +490,10 @@ def convert_to_rotated():
         RealImage = cv2.rotate(RealImage, cv2.ROTATE_90_CLOCKWISE) # Real version
         UpdateSizeDisplay(RealImage) # Change the width x height display
 
-        rotated_img = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB) # Convert the rotated image to RGB (OpenCV uses BGR)
+        if (IsAlpha(RealImage)):
+            rotated_img = cv2.cvtColor(current_image, cv2.COLOR_BGRA2RGBA) # Convert the rotated image to RGB (OpenCV uses BGR)
+        else:
+            rotated_img = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
         pil_img = Image.fromarray(rotated_img) # Convert the OpenCV image to a PIL Image
         photo = ImageTk.PhotoImage(pil_img)
         MainImage.config(image=photo)
@@ -424,12 +503,15 @@ def reset_image():
     global current_image, MainImage, CurrentImagePath, RealImage
     
     if current_image is not None:
-        img = cv2.imread(CurrentImagePath)
+        img = cv2.imread(CurrentImagePath, cv2.IMREAD_UNCHANGED)
         RealImage = img
         UpdateSizeDisplay(RealImage) # Change the width x height display
         img = Resizer(img)
         current_image = img
-        img = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
+        if (IsAlpha(RealImage)):
+            img = cv2.cvtColor(current_image, cv2.COLOR_BGRA2RGBA)
+        else:
+            img = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
 
         # Convert the OpenCV image to a PIL Image
         pil_img = Image.fromarray(img)
