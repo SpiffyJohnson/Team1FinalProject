@@ -1,7 +1,7 @@
 #---------------------------------------------------------------------------------------------------------------
 # Program: Team 1 Photo Editor
 # Author(s): Samuel Johnson, Gabe Bartek, Ryan Michael, Cole Mason
-# Last Updated: 3/19/2024
+# Last Updated: 5/06/2024
 # Purpose: To edit the color, rotation, and size of image files.
 #---------------------------------------------------------------------------------------------------------------
 
@@ -91,11 +91,13 @@ def IsAlpha(image):
     except:
         return False
 
+# Updates the text at the top of the editor that displays the image dimensions
 def UpdateSizeDisplay(img):
     global ImageSizeDisplay
     height, width, _ = img.shape
     ImageSizeDisplay.config(text=(str(width) + " x " + str(height)))
 
+# Resizes the entered image into a 720x720 dummy photo for display
 def Resizer(img):
     height, width, _ = img.shape
     
@@ -112,7 +114,7 @@ def Resizer(img):
     img = cv2.resize(img, None, fx=multiplier, fy=multiplier, interpolation=cv2.INTER_AREA)
     return img
 
-
+# Accepts a path from the user and opens the resulting image
 def LoadImage():
     global CurrentImagePath, MainImage, current_image, RealImage  # Declare MainImage as a global variable
     # Open the file directory and allow image selection
@@ -139,6 +141,7 @@ def LoadImage():
         MainImage.config(image=photo)
         MainImage.image = photo
 
+# Save the photo stored in the RealImage variable into the desired location
 def SaveAsImage():
     global RealImage
 
@@ -152,6 +155,7 @@ def SaveAsImage():
             photo = Image.fromarray(image)
             photo.save(FilePath)
 
+# Converts both RealImage and current_image into black and white
 def convert_to_black_and_white():
     global current_image, MainImage, RealImage
 
@@ -195,7 +199,7 @@ def convert_to_black_and_white():
         MainImage.config(image=photo)
         MainImage.image = photo  # Keep a reference to prevent garbage collection
         
-
+# Converts the entered image into grayscale
 def convert_to_grayscale():
     global current_image, MainImage, RealImage
     
@@ -229,6 +233,7 @@ def convert_to_grayscale():
         MainImage.config(image=photo)
         MainImage.image = photo
 
+# Flips the image along the x axis
 def convert_to_flip_h():
     global current_image, MainImage, RealImage
 
@@ -252,6 +257,7 @@ def convert_to_flip_h():
         MainImage.config(image=photo)
         MainImage.image = photo
 
+# Flips the image along the y axis
 def convert_to_flip_v():
     global current_image, MainImage, RealImage
 
@@ -275,6 +281,7 @@ def convert_to_flip_v():
         MainImage.config(image=photo)
         MainImage.image = photo
 
+# Resizes the entered image by an input value
 def convert_to_scaled():
     global current_image, MainImage, RealImage, InputUp
 
@@ -355,6 +362,7 @@ def convert_to_scaled():
         if (not InputUp):
             CreatePopup()
 
+# Inverts each color channel in an image
 def convert_to_inverted():
     global current_image, MainImage, RealImage
 
@@ -397,6 +405,7 @@ def convert_to_inverted():
         MainImage.config(image=photo)
         MainImage.image = photo
 
+# Randomizes each color channel in the entered image
 def convert_to_randomized():
     global current_image, MainImage, RealImage
 
@@ -444,6 +453,7 @@ def convert_to_randomized():
         MainImage.config(image=photo)
         MainImage.image = photo
 
+# Randomizes the logo colors
 def convert_to_randomized_EE():
 
     b, g, r, a = cv2.split(cv2.imread((IMAGE_PATH + "Logo.png"), cv2.IMREAD_UNCHANGED))
@@ -465,22 +475,11 @@ def convert_to_randomized_EE():
     HeaderImage.config(image=photo)
     HeaderImage.image = photo
 
+# Randomizes the header text color
 def HeaderEE():
     HeaderText.config(fg=("#" + os.urandom(6).hex()))
 
-def GetInput(DotNumber, Direction):
-    global RealImage
-    height, width, _ = RealImage.shape
-    
-    # Get the first number input
-    if (Direction == "height"):
-        Input = simpledialog.askinteger("Input", f"Enter the " + Direction + " of the " + DotNumber + " point (0 - " + str(height) + "):", parent=root, minvalue=0, maxvalue=height)
-    else:
-        Input = simpledialog.askinteger("Input", f"Enter the " + Direction + " of the " + DotNumber + " point (0 - " + str(width) + "):", parent=root, minvalue=0, maxvalue=width)
-    if Input is None:  # Check if user cancels the dialog
-        return None, None
-    return Input
-
+# Rotates the image clockwise by 90 degrees
 def convert_to_rotated():
     global current_image, MainImage, RealImage
 
@@ -499,6 +498,7 @@ def convert_to_rotated():
         MainImage.config(image=photo)
         MainImage.image = photo
 
+# Reopens the desired image, undoing all changes
 def reset_image():
     global current_image, MainImage, CurrentImagePath, RealImage
     
@@ -525,7 +525,7 @@ def reset_image():
 
 
 
-# Frame setup: --------------------------------------------------------------------------------
+# Tkinter Frame setup: --------------------------------------------------------------------------------
 
 TopFrame = tk.Canvas(root)
 TopFrame.columnconfigure(0, weight=1)
